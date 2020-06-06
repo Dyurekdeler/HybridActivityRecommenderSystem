@@ -1,0 +1,42 @@
+activityId,title,genres,time,season
+1,walking,sport|outdoor,all,all
+2,jogging,sport|outdoor,all,all
+3,swimming,sport,day,summer
+4,hiking,sport|nature,day,all
+5,biking,sport|outdoor,day,all
+6,cooking,food|cusine|hobby,all,all
+7,baking,food|cusine|hobby,all,all
+8,painting,art|hobby,all,all
+9,wood-painting,art|hobby,all,all
+10,playing-instrument,art|music|hobby,day,all
+11,video-gaming,game|entertainment,all,all
+12,board-gaming,game|entertainment|social,all,all
+13,watching-movie,cinema|entertainment,all,all
+14,watching-series,cinema|entertainment,all,all
+15,going-cinema,cinema|entertainment|outside,all,all
+16,doing-puzzle,game|entertainment,all,all
+17,playing-chess,entertainment|self-improvement|game,all,all
+18,going-show,entertainment|outside|social,evening,all
+19,going-theatre,entertainment|outside|social,evening,all
+20,going-concert,entertainment|outside|social|music|dance,evening,all
+21,going-dance,entertaintment|social|outside|dance,evening,all
+22,reading-book,culture|self-improvement,all,all
+23,learning-foreign-languages,self-improvement|education,day,all
+24,watching-documentary,self-improvement,all,all
+25,fishing,outdoor|hunting,all,winter|fall
+26,gardening,outdoor|nature,day,spring|summer
+27,going-picnic, outdoor|nature,day,spring|summer
+28,camping,outdoor|nature|adventure,all,summer|spring|fall
+29,historical-trip,history|adventure|exploring|culture|trip,day,all
+30,visiting-point-of-interests,exploring|trip,day,all
+31,meeting-friends,social|outside,all,all
+32,eating-outside,food|cusine|outside,all,all
+33,eating-dinner, food|outside|social,evening,all
+34,eating-dessert, food|outside|social,all,all
+35,visiting-cafe, food|drink|social|outside,all,all
+36,visiting-bar, drink|social|alcohol|outside,evening,all
+37,eating-fast-food, food|outside|social,all,all
+38,visiting-souvenir-shop,shopping|outside,day,all
+39,visiting-mall,shopping|outside,day,all
+40,visiting-park,outdoor|nature|social,all,all
+41,playing-tennis,sport,all,all
