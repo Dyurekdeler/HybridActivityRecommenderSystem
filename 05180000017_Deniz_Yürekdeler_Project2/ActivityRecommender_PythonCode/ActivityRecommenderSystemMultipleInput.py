@@ -15,18 +15,13 @@ warnings.filterwarnings("ignore")
 #create the Flask app
 app = Flask(__name__)
 
-# this route : http:// example url /
 @app.route('/',methods=['GET', 'POST'])
 def collaborative_filtering():
-    # take the input activity from request's data
-    #req = request.get_json(force=True)
-    #activity = req['activity']
 
-    #bypassing the data from the request data incase there is no post request
-    activity = 'going-cinema'
+    activity_list = ['visiting-cafe', 'wood-painting']
 
     #read csv files and load them to dataframes
-    ratings_data = pd.read_csv("activity-ratings.csv")
+    ratings_data = pd.read_csv("activity-ratings-big.csv")
     activity_names = pd.read_csv("activities.csv")
 
     #merge two dataframes, order then descending
@@ -54,24 +49,12 @@ def collaborative_filtering():
 
     #create rating matrix row column are user-activity , cells are rating
     user_activity_rating = activity_data.pivot_table(index='userId', columns='title', values='rating')
-    #select the activity given by user
-    similar_activity_ratings = user_activity_rating[activity]
-    #find correlations of others for given activity
-    activities_like_given = user_activity_rating.corrwith(similar_activity_ratings)
-    #correlation dataframe
-    corr_similar_activity = pd.DataFrame(activities_like_given, columns=['Correlation'])
 
-    #drop empty cells to make dense matrix
-    corr_similar_activity.dropna(inplace=True)
+    results_list = list()
+    for activity in activity_list:
+        result_df = calculaate_correlation(activity, user_activity_rating, ratings_mean_count)
+        results_list.append(result_df)
 
-    #merge correlation and rating counts columns
-    corr_similar_activity.sort_values('Correlation', ascending=False).head(10)
-    corr_similar_activity = corr_similar_activity.join(ratings_mean_count['rating_counts'])
-
-    #filter correlations to have minimum of 2 rating counts
-    result_df = corr_similar_activity[corr_similar_activity['rating_counts'] > 5].sort_values('Correlation',
-                                                                                   ascending=False).head()
-    print(result_df)
     #find the given activity's title and genres
     given_activity_title = activity_names.loc[activity_names['title'] == activity, 'title'].item()
     given_activity_genres = activity_names.loc[activity_names['title'] == activity, 'genres'].item()
@@ -84,29 +67,66 @@ def collaborative_filtering():
     recommended_titles.append(given_activity_title)
     recommended_genres.append(given_activity_genres)
 
-    #loop result dataframe of collaborative filtering
-    for index, row in result_df.iterrows():
-        #find the time, season and genres of the current activity
-        activity_title = row.name
-        time = activity_names.loc[activity_names['title'] == activity_title, 'time'].item()
-        season = activity_names.loc[activity_names['title'] == activity_title, 'season'].item()
-        genres = activity_names.loc[activity_names['title'] == activity_title, 'genres'].item()
-        #control if the activity is logical for current season & time, if so add it to lists
-        time_check, season_check = check_approporiate(time, season)
-        if time_check and season_check:
-            activity_name = str(activity_title)
-            recommended_titles.append(activity_name)
-            recommended_genres.append(genres)
+    recommendation_list = list()
+    for result_df in results_list:
+        #loop result dataframe of collaborative filtering
+        for index, row in result_df.iterrows():
+            #find the time, season and genres of the current activity
+            activity_title = row.name
+            time = activity_names.loc[activity_names['title'] == activity_title, 'time'].item()
+            season = activity_names.loc[activity_names['title'] == activity_title, 'season'].item()
+            genres = activity_names.loc[activity_names['title'] == activity_title, 'genres'].item()
+            #control if the activity is logical for current season & time, if so add it to lists
+            time_check, season_check = check_approporiate(time, season)
+            if time_check and season_check:
+                activity_name = str(activity_title)
+                recommended_titles.append(activity_name)
+                recommended_genres.append(genres)
+        print(result_df)
 
-    #call content based filtering with the filtered results
-    recommendations = content_based(recommended_titles, recommended_genres, activity)
 
-    response_str = "<h1>The activity(s) I recommend for you : " + recommendations + "</h1>"
-    #result is printed in console incase user cannot use a web browser
+        #call content based filtering with the filtered results
+        recommendations = content_based(recommended_titles, recommended_genres, activity)
+
+        for reco in recommendations:
+            if reco not in recommendation_list:
+                recommendation_list.append(reco)
+
+        for act in activity_list:
+            if act in recommendation_list:
+                recommendation_list.remove(act)
+
+
+
+    response_str = "<h1>The activity(s) I recommend for you : " +", ".join(recommendation_list) + "</h1>"
+
     print(response_str)
+
     #for viewing the reulst in a web browser we send the result str in json form
     #for using this API from other apps. send the recommendations list instead of response_str
     return ''' {} '''.format(response_str)
+
+
+def calculaate_correlation(activity, user_activity_rating, ratings_mean_count):
+    # select the activity given by user
+    similar_activity_ratings = user_activity_rating[activity]
+    # find correlations of others for given activity
+    activities_like_given = user_activity_rating.corrwith(similar_activity_ratings)
+    # correlation dataframe
+    corr_similar_activity = pd.DataFrame(activities_like_given, columns=['Correlation'])
+
+    # drop empty cells to make dense matrix
+    corr_similar_activity.dropna(inplace=True)
+
+    # merge correlation and rating counts columns
+    corr_similar_activity.sort_values('Correlation', ascending=False).head(10)
+    corr_similar_activity = corr_similar_activity.join(ratings_mean_count['rating_counts'])
+
+    # filter correlations to have minimum of 2 rating counts
+    result_df = corr_similar_activity[corr_similar_activity['rating_counts'] > 5].sort_values('Correlation',
+                                                                                              ascending=False).head()
+    return result_df
+
 
 #find current hour and season
 def time_and_season():
@@ -189,11 +209,12 @@ def content_based(activity_names, genres, activity):
         recommended_activities.append((df['title'].loc[i]))
 
     #now remove the original activity to not recommend it back to the user
+    # fix here
     if recommended_activities.__contains__(activity):
         recommended_activities.remove(activity)
 
     #append recommendations with comma
-    return " ,".join(recommended_activities)
+    return recommended_activities
 
 
 if __name__ == "__main__":
