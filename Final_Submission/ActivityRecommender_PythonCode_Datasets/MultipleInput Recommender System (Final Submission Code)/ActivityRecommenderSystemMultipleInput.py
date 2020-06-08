@@ -1,56 +1,56 @@
 from datetime import datetime
-from flask import Flask
+from flask import Flask, request
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
-#filter deprecation warnings
+# filter deprecation warnings
 import warnings
+
 warnings.filterwarnings("ignore")
 
 # author : Deniz Yürekdeler 2020 May
-# this project implemented with using Python 3.7.x
+# this project is implemented with using Python 3.7.x
 
-#create the Flask app
+# create the Flask app
 app = Flask(__name__)
 
-@app.route('/',methods=['GET', 'POST'])
+
+@app.route('/', methods=['GET', 'POST'])
 def collaborative_filtering():
+    req = request.get_json(force=True)
+    activity_list = req['activity_list']
 
-    #in this step you can read data from http request's body in json
-    #but for the demonstation that process is bypassed
-    activity_list = ['visiting-cafe', 'wood-painting']
+    # read csv files and load them to dataframes
+    ratings_data = pd.read_csv("../Data/Processed Data/activity-ratings-real.csv")
+    activity_names = pd.read_csv("../Data/Processed Data/activities.csv")
 
-    #read csv files and load them to dataframes
-    ratings_data = pd.read_csv("activity-ratings-real.csv")
-    activity_names = pd.read_csv("activities.csv")
-
-    #merge two dataframes, order then descending
+    # merge two dataframes, order then descending
     activity_data = pd.merge(ratings_data, activity_names, on='activityId')
     activity_data.groupby('title')['rating'].mean().head()
     activity_data.groupby('title')['rating'].mean().sort_values(ascending=False).head()
     activity_data.groupby('title')['rating'].count().sort_values(ascending=False).head()
 
-    #groupby on column title to calculate rating mean and count for each activity
+    # groupby on column title to calculate rating mean and count for each activity
     ratings_mean_count = pd.DataFrame(activity_data.groupby('title')['rating'].mean())
     ratings_mean_count['rating_counts'] = pd.DataFrame(activity_data.groupby('title')['rating'].count())
 
-    #visualize the rating mean and rating counts, this step is optinal
-    plt.figure(figsize=(8, 6))
-    plt.title("rating counts")
-    plt.rcParams['patch.force_edgecolor'] = True
+    # visualize the rating mean and rating counts, this step is optinal
+    # plt.figure(figsize=(8, 6))
+    # plt.title("rating counts")
+    # plt.rcParams['patch.force_edgecolor'] = True
     ratings_mean_count['rating_counts'].hist(bins=50)
 
-    plt.figure(figsize=(8, 6))
-    plt.title("ratings")
-    plt.rcParams['patch.force_edgecolor'] = True
+    # plt.figure(figsize=(8, 6))
+    # plt.title("ratings")
+    # plt.rcParams['patch.force_edgecolor'] = True
     ratings_mean_count['rating'].hist(bins=50)
 
-    #uncomment this line to see the figures
-    #plt.show()
+    # uncomment this line to see the figures
+    # plt.show()
 
-    #create rating matrix row column are user-activity , cells are rating
+    # create rating matrix row column are user-activity , cells are rating
     user_activity_rating = activity_data.pivot_table(index='userId', columns='title', values='rating')
 
     recommendation_list = list()
@@ -63,7 +63,7 @@ def collaborative_filtering():
         recommended_genres = list()
 
         result_df = calculate_correlation(activity, user_activity_rating, ratings_mean_count)
-
+        print(result_df)
         for index, row in result_df.iterrows():
 
             activity_title = row.name
@@ -92,11 +92,10 @@ def collaborative_filtering():
         if act in recommendation_list:
             recommendation_list.remove(act)
 
-    print()
-
-    response_str = "<h1>The activity(s) I recommend for you : " +", ".join(recommendation_list) + "</h1>"
+    response_str = "<h1>The activity(s) I recommend for you : " + ", ".join(recommendation_list) + "</h1>"
 
     return ''' {} '''.format(response_str)
+
 
 def calculate_correlation(activity, user_activity_rating, ratings_mean_count):
     # select the activity given by user
@@ -119,7 +118,7 @@ def calculate_correlation(activity, user_activity_rating, ratings_mean_count):
     return result_df
 
 
-#find current hour and season
+# find current hour and season
 def time_and_season():
     now = datetime.now()
     month = now.month
@@ -140,8 +139,9 @@ def time_and_season():
 
     return time, season
 
-def check_approporiate( time, season):
-    #find current time and season from other supportive method
+
+def check_approporiate(time, season):
+    # find current time and season from other supportive method
     time_now, season_now = time_and_season()
     time_check = False
     season_check = False
@@ -153,19 +153,18 @@ def check_approporiate( time, season):
 
     return time_check, season_check
 
-def content_based(activity_names, genres, activity):
 
-    #create a new dataframe with title and genres lists
-    df = pd.DataFrame({'title':activity_names, 'genres':genres})
+def content_based(activity_names, genres, activity):
+    # create a new dataframe with title and genres lists
+    df = pd.DataFrame({'title': activity_names, 'genres': genres})
     df = df[['title', 'genres']]
 
     # initialize the new column to hold found keywords
     df['Key_words'] = ""
 
-    #loop the dataframe created
+    # loop the dataframe created
     for index, row in df.iterrows():
-
-        #initialize vectorizer for NLP
+        # initialize vectorizer for NLP
         vectorizer = TfidfVectorizer()
 
         # extracting the words by passing the text
@@ -198,12 +197,12 @@ def content_based(activity_names, genres, activity):
     for i in top_3_indexes:
         recommended_activities.append((df['title'].loc[i]))
 
-    #now remove the original activity to not recommend it back to the user
+    # now remove the original activity to not recommend it back to the user
     # fix here
     if recommended_activities.__contains__(activity):
         recommended_activities.remove(activity)
 
-    #append recommendations with comma
+    # append recommendations with comma
     return recommended_activities
 
 
